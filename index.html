@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Science Jeopardy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060ce9;
+            background-image: radial-gradient(circle, #1c23ff, #060ce9 80%);
+            color: white;
+        }
+        .jeopardy-title {
+            font-family: 'Anton', sans-serif;
+            color: #ffffff;
+            text-shadow: 3px 3px 0px #000000;
+            letter-spacing: 2px;
+        }
+        .category-title {
+            font-family: 'Anton', sans-serif;
+            height: 15vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #ffffff;
+            text-shadow: 2px 2px 0px #000000;
+        }
+        .point-card {
+            font-family: 'Anton', sans-serif;
+            background-color: #060ce9;
+            color: #ffcc00;
+            text-shadow: 3px 3px 0px #000000;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 12vh;
+            border: 2px solid #00008b;
+        }
+        .point-card:not(.answered):hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #ffcc00;
+        }
+        .point-card.answered {
+            background-color: #060ce9;
+            color: #333;
+            cursor: not-allowed;
+            text-shadow: none;
+        }
+        #modal {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        #modal-content {
+            background-color: #060ce9;
+            border: 4px solid #ffcc00;
+            box-shadow: 0 0 30px #ffcc00;
+        }
+        .modal-text {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+        .btn {
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <h1 class="jeopardy-title text-5xl md:text-7xl text-center mb-8">SCIENCE JEOPARDY</h1>
+
+    <!-- Jeopardy Board -->
+    <div id="jeopardy-board" class="grid grid-cols-5 gap-2 md:gap-4">
+        <!-- Categories will be injected here by JavaScript -->
+    </div>
+
+    <!-- Modal for Question/Answer -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div id="modal-content" class="w-full max-w-3xl rounded-lg p-6 md:p-8 text-center">
+            <div id="question-text" class="modal-text text-2xl md:text-4xl min-h-[150px] flex items-center justify-center"></div>
+            <div id="answer-text" class="modal-text text-2xl md:text-3xl text-green-400 mt-4 hidden"></div>
+            <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                <button id="reveal-answer-btn" class="btn bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-lg">Reveal Answer</button>
+                <button id="close-modal-btn" class="btn bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        // You can easily customize the categories, questions, and answers here.
+        const jeopardyData = {
+            "BIOLOGY BONANZA": {
+                100: { question: "This is the powerhouse of the cell, responsible for generating most of the cell's supply of ATP.", answer: "What is the mitochondrion?" },
+                200: { question: "This process in plants uses sunlight, water, and carbon dioxide to create their own food.", answer: "What is photosynthesis?" },
+                300: { question: "This double-helix molecule contains the genetic instructions for the development and functioning of all known living organisms.", answer: "What is DNA (Deoxyribonucleic acid)?" },
+                400: { question: "These are the four main blood types in the ABO blood group system.", answer: "What are A, B, AB, and O?" },
+                500: { question: "This is the system of naming species of living things by giving each a name composed of two parts, both in Latin.", answer: "What is binomial nomenclature?" }
+            },
+            "CHEMISTRY CORNER": {
+                100: { question: "This is the chemical symbol for the element Gold.", answer: "What is Au?" },
+                200: { question: "This is the term for a substance that speeds up a chemical reaction without being consumed by the reaction.", answer: "What is a catalyst?" },
+                300: { question: "On the pH scale, a substance with a pH of less than 7 is considered this.", answer: "What is acidic?" },
+                400: { question: "These bonds are formed by the transfer of electrons from one atom to another.", answer: "What are ionic bonds?" },
+                500: { question: "This law states that for a fixed mass of gas at constant temperature, the volume is inversely proportional to the pressure.", answer: "What is Boyle's Law?" }
+            },
+            "PHYSICS PHUN": {
+                100: { question: "This is the force that pulls objects toward the center of the Earth.", answer: "What is gravity?" },
+                200: { question: "Newton's First Law of Motion is also known by this name.", answer: "What is the Law of Inertia?" },
+                300: { question: "This is the unit of measurement for electrical resistance.", answer: "What is the Ohm?" },
+                400: { question: "This type of energy is associated with motion.", answer: "What is kinetic energy?" },
+                500: { question: "This famous equation by Einstein relates mass and energy.", answer: "What is E=mc²?" }
+            },
+            "EARTH & SPACE": {
+                100: { question: "This is the largest planet in our solar system.", answer: "What is Jupiter?" },
+                200: { question: "This is the layer of gases surrounding the Earth.", answer: "What is the atmosphere?" },
+                300: { question: "This celestial phenomenon occurs when the Moon passes between the Sun and Earth, casting a shadow on Earth.", answer: "What is a solar eclipse?" },
+                400: { question: "The Earth's crust is broken into several large pieces known by this name.", answer: "What are tectonic plates?" },
+                500: { question: "This is the name for a giant cloud of dust and gas in space, often where stars are born.", answer: "What is a nebula?" }
+            },
+            "MAD SCIENTISTS": {
+                100: { question: "She was a pioneering physicist and chemist who conducted groundbreaking research on radioactivity and was the first woman to win a Nobel Prize.", answer: "Who is Marie Curie?" },
+                200: { question: "He developed the theory of relativity, one of the two pillars of modern physics.", answer: "Who is Albert Einstein?" },
+                300: { question: "This English naturalist is famous for his theory of evolution by natural selection.", answer: "Who is Charles Darwin?" },
+                400: { question: "He is credited with the invention of the telephone.", answer: "Who is Alexander Graham Bell?" },
+                500: { question: "This Austrian monk's experiments with pea plants laid the groundwork for the science of genetics.", answer: "Who is Gregor Mendel?" }
+            }
+        };
+
+        // --- DOM Elements ---
+        const board = document.getElementById('jeopardy-board');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+        const questionText = document.getElementById('question-text');
+        const answerText = document.getElementById('answer-text');
+        const revealAnswerBtn = document.getElementById('reveal-answer-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        let currentCard = null;
+
+        // --- Functions ---
+
+        /**
+         * Creates and populates the Jeopardy board.
+         */
+        function createBoard() {
+            const categories = Object.keys(jeopardyData);
+            
+            // 1. Create Category Headers
+            categories.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category-title text-xl md:text-2xl lg:text-3xl bg-blue-900 rounded-md p-2';
+                categoryDiv.textContent = category;
+                board.appendChild(categoryDiv);
+            });
+
+            // 2. Create Point Cards
+            const points = [100, 200, 300, 400, 500];
+            for (const point of points) {
+                for (const category of categories) {
+                    const card = document.createElement('div');
+                    card.className = 'point-card text-4xl md:text-5xl rounded-md';
+                    card.textContent = `$${point}`;
+                    card.dataset.category = category;
+                    card.dataset.points = point;
+                    card.addEventListener('click', handleCardClick);
+                    board.appendChild(card);
+                }
+            }
+        }
+
+        /**
+         * Handles the click event on a point card.
+         * @param {Event} event - The click event.
+         */
+        function handleCardClick(event) {
+            currentCard = event.currentTarget;
+            if (currentCard.classList.contains('answered')) {
+                return; // Do nothing if the question has been answered
+            }
+
+            const category = currentCard.dataset.category;
+            const points = currentCard.dataset.points;
+            const qa = jeopardyData[category][points];
+
+            // Populate and show the modal
+            questionText.textContent = qa.question;
+            answerText.textContent = qa.answer;
+            answerText.classList.add('hidden');
+            revealAnswerBtn.classList.remove('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        /**
+         * Reveals the answer in the modal.
+         */
+        function revealAnswer() {
+            answerText.classList.remove('hidden');
+            revealAnswerBtn.classList.add('hidden');
+        }
+
+        /**
+         * Closes the modal and marks the question as answered.
+         */
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (currentCard && !currentCard.classList.contains('answered')) {
+                currentCard.classList.add('answered');
+                currentCard.textContent = ''; // Clear the points
+            }
+        }
+
+        // --- Event Listeners ---
+        revealAnswerBtn.addEventListener('click', revealAnswer);
+        closeModalBtn.addEventListener('click', closeModal);
+        
+        // Close modal if clicking outside the content
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // --- Initialize Game ---
+        createBoard();
+    </script>
+</body>
+</html>
